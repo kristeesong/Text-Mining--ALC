@@ -1,6 +1,6 @@
 ---
 title: "141SL Project"
-author: "Kristee Song"
+author: "Kathy Fu, Kristee Song, Bella Lee, Joy Harjanto"
 date: "5/6/2019"
 output: html_document
 ---
