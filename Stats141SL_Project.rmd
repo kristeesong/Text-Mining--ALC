@@ -1,0 +1,1005 @@
+---
+title: "Stats141SL: ALC Text Mining"
+author: "Extension Group 4"
+date: "5/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r messages=F}
+library(readr)
+library(stringr)
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+library(reshape2)
+```
+
+#PROGRAM EVALUATIONS
+##Data Cleaning: Program Evaluations
+```{r warning= F, message=F}
+Prog_Eval_1 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_33_export.csv")
+Prog_Eval_2 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_34_export.csv")
+Prog_Eval_3 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_46_export.csv")
+Prog_Eval_4 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_80_export.csv")
+Prog_Eval_5 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_81_export.csv")
+Prog_Eval_6 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_82_export.csv")
+Prog_Eval_7 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_92_export.csv")
+Prog_Eval_8 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_93_export.csv")
+
+
+eval33 <- Prog_Eval_1
+eval33$numberofquestions <- ncol(eval33)-4
+eval34 <- Prog_Eval_2
+eval34$numberofquestions <- ncol(eval34)-5
+eval46 <- Prog_Eval_3 # nulls in ID
+eval46$numberofquestions <- ncol(eval46)-5
+eval80 <- Prog_Eval_4
+eval80$numberofquestions <- ncol(eval80)-6
+eval81 <- Prog_Eval_5
+eval81$numberofquestions <- ncol(eval81)-5
+eval82 <- Prog_Eval_6
+eval82$numberofquestions <- ncol(eval82)-5
+eval92 <- Prog_Eval_7
+eval92$numberofquestions <- ncol(eval92)-6
+eval93 <- Prog_Eval_8
+eval93$numberofquestions <- ncol(eval93)-6
+
+
+e <- .GlobalEnv
+progevals <- ls(pattern = "Prog_Eval_", envir = e)
+
+#Recode Evals to just the OE columns
+for (i in 1:length(progevals)){
+  about <- agrep("about", colnames(e[[progevals[i]]]),ignore.case = TRUE)
+  changes<- grep("changes", colnames(e[[progevals[i]]]),ignore.case = TRUE)
+  comment <- grep("comment", colnames(e[[progevals[i]]]),ignore.case = TRUE)
+  columns <- append(about,c(changes,comment))
+  e[[progevals[i]]] <- e[[progevals[i]]][,columns]
+}
+
+#NULLS to NA
+for (i in 1:length(progevals)){
+  e[[progevals[i]]][apply(e[[progevals[i]]], 2, function(x) x == "NULL")] <- NA
+}
+
+
+eval1_NA_counts <- as.data.frame(apply(Prog_Eval_1, 2, function(x) sum(is.na(x) == T)/nrow(Prog_Eval_1)))
+eval2_NA_counts <- as.data.frame(apply(Prog_Eval_2, 2, function(x) sum(is.na(x) == T)/nrow(Prog_Eval_2)))
+eval3_NA_counts <- as.data.frame(apply(Prog_Eval_3, 2, function(x) sum(is.na(x) == T)/nrow(Prog_Eval_3)))
+eval4_NA_counts <- as.data.frame(apply(Prog_Eval_4, 2, function(x) sum(is.na(x) == T)/nrow(Prog_Eval_4)))
+eval5_NA_counts <- as.data.frame(apply(Prog_Eval_5, 2, function(x) sum(is.na(x) == T)/nrow(Prog_Eval_5)))
+eval6_NA_counts <- as.data.frame(apply(Prog_Eval_6, 2, function(x) sum(is.na(x) == T)/nrow(Prog_Eval_6)))
+eval7_NA_counts <- as.data.frame(apply(Prog_Eval_7, 2, function(x) sum(is.na(x) == T)/nrow(Prog_Eval_7)))
+eval8_NA_counts <- as.data.frame(apply(Prog_Eval_8, 2, function(x) sum(is.na(x) == T)/nrow(Prog_Eval_8)))
+
+colnames(eval1_NA_counts) <- "Proportion of NA responses"
+eval1_NA_counts$Question <- row.names(eval1_NA_counts)
+row.names(eval1_NA_counts) <- 1:nrow(eval1_NA_counts)
+eval1_NA_counts$Question <- str_replace_all(eval1_NA_counts$Question, "_{1,2}", " ")
+eval1_NA_counts$Eval_Number <- "Eval 1"
+eval1_NA_counts$Question_Number <- c(14, 26, 15, 27) - 3
+
+colnames(eval2_NA_counts) <- "Proportion of NA responses"
+eval2_NA_counts$Question <- row.names(eval2_NA_counts)
+row.names(eval2_NA_counts) <- 1:nrow(eval2_NA_counts)
+eval2_NA_counts$Question <- str_replace_all(eval2_NA_counts$Question, "_{1,2}", " ")
+eval2_NA_counts$Eval_Number <- "Eval 2"
+eval2_NA_counts$Question_Number <- c(16, 28, 17, 29) - 4
+
+colnames(eval3_NA_counts) <- "Proportion of NA responses"
+eval3_NA_counts$Question <- row.names(eval3_NA_counts)
+row.names(eval3_NA_counts) <- 1:nrow(eval3_NA_counts)
+eval3_NA_counts$Question <- str_replace_all(eval3_NA_counts$Question, "_{1,2}", " ")
+eval3_NA_counts$Eval_Number <- "Eval 3"
+eval3_NA_counts$Question_Number <- c(16, 28, 40, 17, 29, 41) - 4
+
+#number at end corresponds to question number
+colnames(eval4_NA_counts) <- "Proportion of NA responses"
+eval4_NA_counts$Question <- row.names(eval4_NA_counts)
+row.names(eval4_NA_counts) <- 1:nrow(eval4_NA_counts)
+eval4_NA_counts$Question <- str_replace_all(eval4_NA_counts$Question, "_{1,2}", " ")
+eval4_NA_counts$Eval_Number <- "Eval 4"
+
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+eval4_NA_counts$Question_Number <- as.numeric(substrRight(eval4_NA_counts$Question, 3))
+
+#number at end corresponds to question number
+colnames(eval5_NA_counts) <- "Proportion of NA responses"
+eval5_NA_counts$Question <- row.names(eval5_NA_counts)
+row.names(eval5_NA_counts) <- 1:nrow(eval5_NA_counts)
+eval5_NA_counts$Question <- str_replace_all(eval5_NA_counts$Question, "_{1,2}", " ")
+eval5_NA_counts$Eval_Number <- "Eval 5"
+eval5_NA_counts$Question_Number <- as.numeric(substrRight(eval5_NA_counts$Question, 3))
+
+#number at end corresponds to question number
+colnames(eval6_NA_counts) <- "Proportion of NA responses"
+eval6_NA_counts$Question <- row.names(eval6_NA_counts)
+row.names(eval6_NA_counts) <- 1:nrow(eval6_NA_counts)
+eval6_NA_counts$Question <- str_replace_all(eval6_NA_counts$Question, "_{1,2}", " ")
+eval6_NA_counts$Eval_Number <- "Eval 6"
+eval6_NA_counts$Question_Number <- as.numeric(substrRight(eval6_NA_counts$Question, 3))
+
+colnames(eval7_NA_counts) <- "Proportion of NA responses"
+eval7_NA_counts$Question <- row.names(eval7_NA_counts)
+row.names(eval7_NA_counts) <- 1:nrow(eval7_NA_counts)
+eval7_NA_counts$Question <- str_replace_all(eval7_NA_counts$Question, "_{1,2}", " ")
+eval7_NA_counts$Eval_Number <- "Eval 7"
+eval7_NA_counts$Question_Number <- c(16, 28, 40, 52, 64, 17, 29, 41, 53, 65, 74, 76, 78, 80, 82, 84, 86, 88) - 5
+
+
+#question number at end corresponds to question number
+colnames(eval8_NA_counts) <- "Proportion of NA responses"
+eval8_NA_counts$Question <- row.names(eval8_NA_counts)
+row.names(eval8_NA_counts) <- 1:nrow(eval8_NA_counts)
+eval8_NA_counts$Question <- str_replace_all(eval8_NA_counts$Question, "_{1,2}", " ")
+eval8_NA_counts$Eval_Number <- "Eval 8"
+eval8_NA_counts$Question_Number <- as.numeric(substrRight(eval8_NA_counts$Question, 3))
+
+
+open_ended_props <- rbind(eval1_NA_counts, eval2_NA_counts, eval3_NA_counts, eval4_NA_counts, eval5_NA_counts, eval6_NA_counts, eval7_NA_counts, eval8_NA_counts)
+```
+
+
+##Exploratory Analysis: Open-Ended Responses in Program Evals
+```{r}
+open_ended_props %>% arrange(., desc(`Proportion of NA responses`))
+question_length <- nchar(open_ended_props$Question)
+plot(question_length,open_ended_props$`Proportion of NA responses`)
+hist(open_ended_props$`Proportion of NA responses`, breaks = 30)
+eval_average_props <- open_ended_props %>% group_by(Eval_Number) %>% summarise(mean_prop = mean(`Proportion of NA responses`, count=count(Eval_Number)))
+
+
+open_ended_props$`Number of OEs` <- rep(NA, nrow(open_ended_props))
+open_ended_props[open_ended_props$Eval_Number == "Eval 1","Number of OEs"] <- table(open_ended_props$Eval_Number)[1]
+open_ended_props[open_ended_props$Eval_Number == "Eval 2","Number of OEs"] <- table(open_ended_props$Eval_Number)[2]
+open_ended_props[open_ended_props$Eval_Number == "Eval 3","Number of OEs"] <- table(open_ended_props$Eval_Number)[3]
+open_ended_props[open_ended_props$Eval_Number == "Eval 4","Number of OEs"] <- table(open_ended_props$Eval_Number)[4]
+open_ended_props[open_ended_props$Eval_Number == "Eval 5","Number of OEs"] <- table(open_ended_props$Eval_Number)[5]
+open_ended_props[open_ended_props$Eval_Number == "Eval 6","Number of OEs"] <- table(open_ended_props$Eval_Number)[6]
+open_ended_props[open_ended_props$Eval_Number == "Eval 7","Number of OEs"] <- table(open_ended_props$Eval_Number)[7]
+open_ended_props[open_ended_props$Eval_Number == "Eval 8","Number of OEs"] <- table(open_ended_props$Eval_Number)[8]
+
+#Graphics for proportion of NAs
+ggplot(eval_average_props,aes(x = Eval_Number, y=mean_prop)) +
+  geom_col()
+ggplot(open_ended_props,aes(x = Eval_Number, y=`Proportion of NA responses`)) +
+  geom_boxplot(aes(fill = `Number of OEs`)) +
+  ggtitle("Proportion of NA responses by Evaluation Form")
+
+ggplot(open_ended_props, aes(x=Question_Number, y=`Proportion of NA responses`, color=Eval_Number)) +
+  geom_point() +
+  geom_smooth(span=2) +
+  scale_x_continuous(breaks=seq(0,100,10)) +
+  ggtitle("How do responses change over time per Evaluation Form")
+
+ggplot(open_ended_props, aes(x=Question_Number, y=`Proportion of NA responses`, color=Eval_Number)) +
+  geom_point() +
+  scale_x_continuous(breaks=seq(0,100,10)) +
+  ggtitle("How do responses change over time per Evaluation Form")
+
+ggplot(open_ended_props, aes(x=Question_Number, y=`Proportion of NA responses`, color=Eval_Number)) +
+  geom_line()
+```
+
+
+##Time-Elapsed for Responses
+```{r}
+eval33$Start_Date <- as.POSIXct(eval33$Start_Date, format = "%Y-%m-%d %H:%M:%S")
+eval33$End_Date <- as.POSIXct(eval33$End_Date, format = "%Y-%m-%d %H:%M:%S")
+eval33$timeElapsed <- eval33$End_Date - eval33$Start_Date
+eval33$number <- 1
+
+eval34$Start_Date <- as.POSIXct(eval34$Start_Date, format = "%m/%d/%Y %H:%M")
+eval34$End_Date <- as.POSIXct(eval34$End_Date, format = "%m/%d/%Y %H:%M")
+eval34$timeElapsed <- eval34$End_Date - eval34$Start_Date
+eval34$number <- 2
+
+eval46$Start_Date <- as.POSIXct(eval46$Start_Date, format = "%m/%d/%Y %H:%M")
+eval46$End_Date <- as.POSIXct(eval46$End_Date, format = "%m/%d/%Y %H:%M")
+eval46$timeElapsed <- eval46$End_Date - eval46$Start_Date
+eval46$number <- 3
+
+eval80$Start_Date__03_ <- as.POSIXct(eval80$Start_Date__03_, format = "%m/%d/%Y %H:%M")
+eval80$End_Date__04_ <- as.POSIXct(eval80$End_Date__04_, format = "%m/%d/%Y %H:%M")
+eval80$timeElapsed <- eval80$End_Date__04_ - eval80$Start_Date__03_
+eval80$number <- 4
+
+eval81$Start_Date__03_ <- as.POSIXct(eval81$Start_Date__03_, format = "%m/%d/%Y %H:%M")
+eval81$End_Date__04_ <- as.POSIXct(eval81$End_Date__04_, format = "%m/%d/%Y %H:%M")
+eval81$timeElapsed <- eval81$End_Date__04_ - eval81$Start_Date__03_
+eval81$number <- 5
+
+eval82$Start_Date_03_ <- as.POSIXct(eval82$Start_Date_03_, format = "%m/%d/%Y %H:%M")
+eval82$End_Date_04_ <- as.POSIXct(eval82$End_Date_04_, format = "%m/%d/%Y %H:%M")
+eval82$timeElapsed <- eval82$End_Date_04_ - eval82$Start_Date_03_
+eval82$number <- 6
+
+eval92$Start_Date <- as.POSIXct(eval92$Start_Date, format = "%m/%d/%Y %H:%M")
+eval92$End_Date <- as.POSIXct(eval92$End_Date, format = "%m/%d/%Y %H:%M")
+eval92$timeElapsed <- eval92$End_Date - eval92$Start_Date
+eval92$number <- 7
+
+eval93$Start_Date_03_ <- as.POSIXct(eval93$Start_Date_03_, format = "%m/%d/%Y %H:%M")
+eval93$End_Date_04_ <- as.POSIXct(eval93$End_Date_04_, format = "%m/%d/%Y %H:%M")
+eval93$timeElapsed <- eval93$End_Date_04_ - eval93$Start_Date_03_
+eval93$number <- 8
+
+# compare
+evaltimes <- rbind(eval33[, c("timeElapsed", "number", "numberofquestions")], eval34[, c("timeElapsed", "number", "numberofquestions")], eval46[, c("timeElapsed", "number", "numberofquestions")], eval80[, c("timeElapsed", "number", "numberofquestions")], eval81[, c("timeElapsed", "number", "numberofquestions")], eval82[, c("timeElapsed", "number", "numberofquestions")], eval92[, c("timeElapsed", "number", "numberofquestions")], eval93[, c("timeElapsed", "number", "numberofquestions")])
+
+evaltimes$timeElapsed <- evaltimes$timeElapsed/60
+table(evaltimes$timeElapsed)
+
+ggplot(evaltimes, aes(numberofquestions, timeElapsed, group = number)) + geom_point()
+
+evaltimes$number <- as.factor(evaltimes$number)
+plot(evaltimes$timeElapsed)
+
+qplot(timeElapsed, numberofquestions, data = evaltimes, color = number) + labs(x = "Time Elapsed in Minutes", y = "Number of Questions", title = "Time Spent Answering Program Evaluation", color = "Survey Number")
+```
+
+
+##Comparing Multiple Choice vs. Open-Ended Response Rates 
+```{r}
+eval33 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_33_export.csv")
+eval34 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_34_export.csv")
+eval46 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_46_export.csv")
+eval80 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_80_export.csv")
+eval81 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_81_export.csv")
+eval82 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_82_export.csv")
+eval92 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_92_export.csv")
+eval93 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_93_export.csv")
+```
+
+#Keeping multiple choice versus open-ended questions for evals 1-8
+```{r}
+#open ended questions
+eval1 <- Prog_Eval_1
+eval2 <- Prog_Eval_2
+eval3 <- Prog_Eval_3
+eval4 <- Prog_Eval_4
+eval5 <- Prog_Eval_5
+eval6 <- Prog_Eval_6
+eval7 <- Prog_Eval_7
+eval8 <- Prog_Eval_8
+
+#multiple choice questions
+eval1_1<-eval33[,-c(1:4, 14:16, 26:28)]
+eval2_2<-eval34[,-c(1:6, 16:18, 28:30)]
+eval3_3<-eval46[,-c(1:6, 16:18, 28:30, 40:42)]
+eval4_4<-eval80[,-c(1:6, 16:18, 28:30, 40:42, 52:53,62,64,66,68,70,72,74,76,77)]
+eval5_5<-eval81[,-c(1:5, 15:17, 27:29, 39:41, 51:52,61,63,65,67,69,71,73,75,76)]
+eval6_6<-eval82[,-c(1:5, 15:17, 27:29, 39:42, 52:53,62,64,66,68,70,72,74,76,77)]
+eval7_7<-eval92[,-c(1:6, 16:18, 28:30, 40:42, 52:54, 64:65,74,76,78,80,82,84,86,88,89)]
+eval8_8<-eval93[,-c(1:6, 16:18, 28:30, 40:42, 52:54, 64:65,74,76,78,80,82,84,86,88,89)]
+
+
+#remove rows that contain all null in every column within data frame
+eval1<-eval1[!apply(eval1, 1, function(x) all(is.na(x)==T)),]
+eval2<-eval2[!apply(eval2, 1, function(x) all(is.na(x)==T)),]
+eval3<-eval3[!apply(eval3, 1, function(x) all(is.na(x)==T)),]
+eval4<-eval4[!apply(eval4, 1, function(x) all(is.na(x)==T)),]
+eval5<-eval5[!apply(eval5, 1, function(x) all(is.na(x)==T)),]
+eval6<-eval6[!apply(eval6, 1, function(x) all(is.na(x)==T)),]
+eval7<-eval7[!apply(eval7, 1, function(x) all(is.na(x)==T)),]
+eval8<-eval8[!apply(eval8, 1, function(x) all(is.na(x)==T)),]
+
+eval1_1<-eval1_1[!apply(eval1_1, 1, function(x) all(x=="NULL")),]
+eval2_2<-eval2_2[!apply(eval2_2, 1, function(x) all(x=="NULL")),]
+eval3_3<-eval3_3[!apply(eval3_3, 1, function(x) all(x=="NULL")),]
+eval4_4<-eval4_4[!apply(eval4_4, 1, function(x) all(x=="NULL")),]
+eval5_5<-eval5_5[!apply(eval5_5, 1, function(x) all(x=="NULL")),]
+eval6_6<-eval6_6[!apply(eval6_6, 1, function(x) all(x=="NULL")),]
+eval7_7<-eval7_7[!apply(eval7_7, 1, function(x) all(x=="NULL")),]
+eval8_8<-eval8_8[!apply(eval8_8, 1, function(x) all(x=="NULL")),]
+
+#Calculate proportion answered versus not answered
+#ans1, ans2, etc. are for open-ended questions
+#ans1_1, ans2_2, etc. are for multiple choice questions
+ans1 <- apply(eval1, 2, function(x) sum(is.na(x)==T)/nrow(eval1))
+ans1_1 <- apply(eval1_1, 2, function(x) sum(x=="NULL")/nrow(eval1_1))
+ans2 <- apply(eval2, 2, function(x) sum(is.na(x)==T)/nrow(eval2))
+ans2_2 <- apply(eval2_2, 2, function(x) sum(x=="NULL")/nrow(eval2_2))
+ans3 <- apply(eval3, 2, function(x) sum(is.na(x)==T)/nrow(eval3))
+ans3_3 <- apply(eval3_3, 2, function(x) sum(x=="NULL")/nrow(eval3_3))
+ans4 <- apply(eval4, 2, function(x) sum(is.na(x)==T)/nrow(eval4))
+ans4_4 <- apply(eval4_4, 2, function(x) sum(x=="NULL")/nrow(eval4_4))
+ans5 <- apply(eval5, 2, function(x) sum(is.na(x)==T)/nrow(eval5))
+ans5_5 <- apply(eval5_5, 2, function(x) sum(x=="NULL")/nrow(eval5_5))
+ans6 <- apply(eval6, 2, function(x) sum(is.na(x)==T)/nrow(eval6))
+ans6_6 <- apply(eval6_6, 2, function(x) sum(x=="NULL")/nrow(eval6_6))
+ans7 <- apply(eval7, 2, function(x) sum(is.na(x)==T)/nrow(eval7))
+ans7_7 <- apply(eval7_7, 2, function(x) sum(x=="NULL")/nrow(eval7_7))
+ans8 <- apply(eval8, 2, function(x) sum(is.na(x)==T)/nrow(eval8))
+ans8_8 <- apply(eval8_8, 2, function(x) sum(x=="NULL")/nrow(eval8_8))
+
+
+#Create mean_data frame
+mean_data<-cbind(c(mean(ans1_1),mean(ans2_2),mean(ans3_3),mean(ans4_4),mean(ans5_5),mean(ans6_6),mean(ans7_7),mean(ans8_8)),c(mean(ans1),mean(ans2),mean(ans3),mean(ans4),mean(ans5),mean(ans6),mean(ans7),mean(ans8)))
+
+colnames(mean_data)<-c("mcq","open_ended")
+mc_and_open <-melt(mean_data)
+colnames(mc_and_open) <- c("Evaluation", "Type of Question", "Average Proportion")
+
+ggplot(data=mc_and_open,aes(x=Evaluation, y=`Average Proportion`, fill=`Type of Question`)) +
+  geom_bar(stat='identity', position=position_dodge()) +
+  ggtitle('Proportion of NAs per Program Evaluation') +
+  xlab('Program Eval Number')
+```
+
+
+##Create data frame 'teachers' 
+```{r}
+Prog_Eval_1 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_33_export.csv")
+Prog_Eval_2 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_34_export.csv")
+Prog_Eval_3 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_46_export.csv")
+Prog_Eval_4 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_80_export.csv")
+Prog_Eval_5 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_81_export.csv")
+Prog_Eval_6 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_82_export.csv")
+Prog_Eval_7 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_92_export.csv")
+Prog_Eval_8 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Program_Evaluations_93_export.csv")
+
+#Program Eval 1
+eval1_mw <- Prog_Eval_1[,c("My_current_Monday__Wednesdayelective_is_1","What_do_you_like_about_this_teacher_class__1", "What_changes_would_make_this_class_better__1")]
+eval1_tth <- Prog_Eval_1[,c("My_current_Tuesday_Thursday_elective_is_2_","What_do_you_like_about_this_teacher_class_2_", "What_changes_would_make_this_class_better_2_")]
+
+colnames(eval1_mw) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval1_tth) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+
+eval1_teachers <- rbind(eval1_mw, eval1_tth)
+eval1_teachers$Evaluation <- 1
+eval1_teachers <- eval1_teachers[eval1_teachers$Teacher != "NULL",]
+eval1_teachers <- eval1_teachers[str_detect(eval1_teachers$Teacher, "NOT") == F,]
+eval1_teachers$Teacher <- str_remove_all(eval1_teachers$Teacher, " ?\\(.+")
+
+
+#Program Eval 2
+eval2_mw <- Prog_Eval_2[,c("My_current_Monday_Wednesday_elective_is_","What_do_you_like_about_this_teacher_class_1_", "What_changes_would_make_this_class_better_1_")]
+eval2_tth <- Prog_Eval_2[,c("My_current_Tuesday_Thursday_elective_is_1_","What_do_you_like_about_this_teacher_class_2_", "What_changes_would_make_this_class_better_2_")]
+
+colnames(eval2_mw) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval2_tth) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+eval2_teachers <- rbind(eval2_mw, eval2_tth)
+eval2_teachers$Evaluation <- 2
+eval2_teachers <- eval2_teachers[eval2_teachers$Teacher != "NULL",]
+eval2_teachers <- eval2_teachers[eval2_teachers$Teacher != "Response",]
+eval2_teachers <- eval2_teachers[str_detect(eval2_teachers$Teacher, "do") == F,]
+eval2_teachers$Teacher <- unlist(str_extract_all(eval2_teachers$Teacher, "\\(.+")) %>% str_replace(., "\\(with ", "") %>% str_replace(., "\\(With ", "") %>% str_replace(., "\\(", "") %>% str_replace(., "\\)", "")
+
+
+#Program Eval 3
+eval3_mw <- Prog_Eval_3[,c("My_Monday___Thursday_teacher_is_","What_do_you_like_about_this_teacher_class_1_", "What_changes_would_make_this_class_better_1_")]
+eval3_mwe <- Prog_Eval_3[,c("My_current_Monday_Wednesday_elective_is_2_","What_do_you_like_about_this_teacher_class_2_", "What_changes_would_make_this_class_better_2_")]
+eval3_tth <- Prog_Eval_3[,c("My_current_Tuesday_Thursday_elective_is_2_","What_do_you_like_about_this_teacher_class_3_", "What_changes_would_make_this_class_better_3_")]
+
+colnames(eval3_mw) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval3_mwe) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval3_tth) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+eval3_teachers <- rbind(eval3_mw, eval3_mwe, eval3_tth)
+eval3_teachers$Evaluation <- 3
+eval3_teachers <- eval3_teachers[eval3_teachers$Teacher != "NULL",]
+eval3_teachers <- eval3_teachers[str_detect(eval3_teachers$Teacher, "do") == F,]
+eval3_teachers$Teacher <- unlist(str_extract_all(eval3_teachers$Teacher, "\\(.+")) %>% str_replace(., "\\(", "") %>% str_replace(., "\\)", "")
+
+
+#Program Eval 4
+eval4_1 <- Prog_Eval_4[,c("My_9_00_11_00_AM_teacher_is____10_",
+                           "What_do_you_like_about_your_9_00_11_00_am_teacher_class__20_", 
+                           "What_changes_would_make_this_class_better__21_")]
+eval4_2 <- Prog_Eval_4[,c("My_11_00_12_00_teacher_is__22_",
+                            "What_do_you_like_about_your_11_00_12_00_teacher_class__32_",
+                            "What_changes_would_make_this_class_better__33_")]
+eval4_3 <- Prog_Eval_4[,c("My_Monday_afternoon__1_00_3_00__teacher_is__34_",
+                          "What_do_you_like_about_this_teacher_class__44_",
+                          "What_changes_would_make_this_class_better__45_")]
+eval4_4 <- Prog_Eval_4[,c("My_current_Tuesday_Thursday_elective__46_",
+                          "What_do_you_like_about_this_teacher_class___56_",
+                          "What_changes_would_make_this_class_better___57_")]
+
+colnames(eval4_1) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval4_2) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval4_3) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval4_4) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+eval4_teachers <- rbind(eval4_1, eval4_2, eval4_3, eval4_4)
+eval4_teachers$Evaluation <- 4
+eval4_teachers <- eval4_teachers[eval4_teachers$Teacher != "NULL",]
+eval4_teachers <- eval4_teachers[str_detect(eval4_teachers$Teacher, "do ") == F,]
+eval4_teachers <- eval4_teachers[str_detect(eval4_teachers$Teacher, "remember") == F,]
+eval4_teachers <- eval4_teachers[str_detect(eval4_teachers$Teacher, "student") == F,]
+eval4_teachers <- eval4_teachers[str_detect(eval4_teachers$Teacher, "have") == F,]
+eval4_teachers <- eval4_teachers[eval4_teachers$Teacher != "Very satisfied",]
+eval4_teachers$Teacher <- str_remove_all(eval4_teachers$Teacher, " ?\\(.+")
+
+
+#Program Eval 5
+eval5_1 <- Prog_Eval_5[,c("My_9_00_11_00_AM_teacher_is____10_",
+                           "What_do_you_like_about_your_9_00_11_00_am_teacher_class__20_", 
+                           "What_changes_would_make_this_class_better__21_")]
+eval5_2 <- Prog_Eval_5[,c("My_11_00_12_00_teacher_is__22_",
+                          "What_do_you_like_about_your_11_00_12_00_teacher_class__32_",
+                          "What_changes_would_make_this_class_better__33_")]
+eval5_3 <- Prog_Eval_5[,c("My_Monday_afternoon__1_00_3_00__teacher_is__34_",
+                          "What_do_you_like_about_this_teacher_class__44_",
+                          "What_changes_would_make_this_class_better__45_")]
+eval5_4 <- Prog_Eval_5[,c("My_current_Tuesday_Thursday_elective__46_",
+                          "What_do_you_like_about_this_teacher_class___56_",
+                          "What_changes_would_make_this_class_better___57_")]
+
+colnames(eval5_1) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval5_2) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval5_3) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval5_4) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+eval5_teachers <- rbind(eval5_1, eval5_2, eval5_3, eval5_4)
+eval5_teachers$Evaluation <- 5
+eval5_teachers <- eval5_teachers[eval5_teachers$Teacher != "NULL",]
+eval5_teachers <- eval5_teachers[str_detect(eval5_teachers$Teacher, "do ") == F,]
+eval5_teachers <- eval5_teachers[str_detect(eval5_teachers$Teacher, "remember") == F,]
+eval5_teachers <- eval5_teachers[str_detect(eval5_teachers$Teacher, "student") == F,]
+eval5_teachers <- eval5_teachers[str_detect(eval5_teachers$Teacher, "have") == F,]
+eval5_teachers <- eval5_teachers[eval5_teachers$Teacher != "Very satisfied",]
+eval5_teachers$Teacher <- str_remove_all(eval5_teachers$Teacher, " ?\\(.+")
+
+
+#Program Eval 6
+eval6_1 <- Prog_Eval_6[,c("My_9_00_11_00_AM_teacher_is_10_",
+                           "What_do_you_like_about_your_9_00_11_00_am_teacher_class_20_", 
+                           "What_changes_would_make_this_class_better_21_")]
+eval6_2 <- Prog_Eval_6[,c("My_11_00_12_00_teacher_is_22_",
+                          "What_do_you_like_about_your_11_00_12_00_teacher_class_32_",
+                          "What_changes_would_make_this_class_better_33_")]
+eval6_3 <- Prog_Eval_6[,c("My_Monday_afternoon__1_00_3_00__teacher_is_34_",
+                          "What_do_you_like_about_this_teacher_class_44_",
+                          "What_changes_would_make_this_class_better_45_")]
+eval6_4 <- Prog_Eval_6[,c("My_current_Tuesday_Thursday_elective_teacher_is_47_",
+                          "What_do_you_like_about_this_teacher_class_57_" ,
+                          "What_changes_would_make_this_class_better_58_")]
+
+colnames(eval6_1) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval6_2) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval6_3) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval6_4) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+eval6_teachers <- rbind(eval6_1, eval6_2, eval6_3, eval6_4)
+eval6_teachers$Evaluation <- 6
+eval6_teachers <- eval6_teachers[eval6_teachers$Teacher != "NULL",]
+eval6_teachers <- eval6_teachers[eval6_teachers$Teacher != "Response",]
+eval6_teachers <- eval6_teachers[str_detect(eval6_teachers$Teacher, "do ") == F,]
+eval6_teachers$Teacher <- str_remove_all(eval6_teachers$Teacher, " ?\\(.+")
+
+
+#Program Eval 7
+eval7_1 <- Prog_Eval_7[,c("My_9_00_11_00_AM_teacher_is_1_",
+                           "What_do_you_like_about_your_9_00_11_00_am_teacher_class_1_", 
+                           "What_changes_would_make_this_class_better_1_")]
+eval7_2 <- Prog_Eval_7[,c("My_11_00_12_00_teacher_is_2_",
+                          "What_do_you_like_about_your_11_00_12_00_teacher_class_2_",
+                          "What_changes_would_make_this_class_better_2_")]
+eval7_3 <- Prog_Eval_7[,c("My_Monday_Wednesday_afternoon_class__1_00___3_00_pm__is_3_",
+                          "What_do_you_like_about_this_teacher_class_3_",
+                          "What_changes_would_make_this_class_better_3_")]
+eval7_4 <- Prog_Eval_7[,c("My_current_Tuesday_Thursday_elective_is_4_",
+                          "What_do_you_like_about_this_teacher_class_4_" ,
+                          "What_changes_would_make_this_class_better_4_")]
+eval7_5 <- Prog_Eval_7[,c("My_current_Monday__Thursdayclass_is_5_",
+                          "What_do_you_like_about_this_teacher_class_5_" ,
+                          "What_changes_would_make_this_class_better_5_")]
+
+colnames(eval7_1) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval7_2) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval7_3) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval7_4) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval7_5) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+
+eval7_teachers <- rbind(eval7_1, eval7_2, eval7_3, eval7_4, eval7_5)
+eval7_teachers$Evaluation <- 7
+eval7_teachers <- eval7_teachers[eval7_teachers$Teacher != "NULL",]
+eval7_teachers <- eval7_teachers[str_detect(eval7_teachers$Teacher, "do ") == F,]
+eval7_teachers <- eval7_teachers[str_detect(eval7_teachers$Teacher, "have") == F,]
+eval7_teachers$Teacher <- str_remove_all(eval7_teachers$Teacher, " ?\\(.+")
+
+
+#Program Eval 8
+eval8_1 <- Prog_Eval_8[,c("My_9_00_11_00_AM_teacher_is_10_",
+                          "What_do_you_like_about_your_9_00_11_00_am_teacher_class_20_", 
+                          "What_changes_would_make_this_class_better_21_")]
+eval8_2 <- Prog_Eval_8[,c("My_11_00_12_00_teacher_is_22_",
+                          "What_do_you_like_about_your_11_00_12_00_teacher_class_32_",
+                          "What_changes_would_make_this_class_better_33_")]
+eval8_3 <- Prog_Eval_8[,c("My_Monday_Wednesday_afternoon_class__1_00___3_00_pm__is_34_",
+                          "What_do_you_like_about_this_teacher_class_44_",
+                          "What_changes_would_make_this_class_better_45_")]
+eval8_4 <- Prog_Eval_8[,c("My_current_Tuesday_Thursday_elective_is_46_",
+                          "What_do_you_like_about_this_teacher_class_56_" ,
+                          "What_changes_would_make_this_class_better_57_")]
+eval8_5 <- Prog_Eval_8[,c("My_current_Monday__Thursdayclass_is_58_",
+                          "What_do_you_like_about_this_teacher_class_68_" ,
+                          "What_changes_would_make_this_class_better_69_")]
+
+colnames(eval8_1) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval8_2) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval8_3) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval8_4) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+colnames(eval8_5) <- c("Teacher", "What do you like about this teacher/class", "What changes would make this class better")
+
+eval8_teachers <- rbind(eval8_1, eval8_2, eval8_3, eval8_4, eval8_5)
+eval8_teachers$Evaluation <- 8
+eval8_teachers <- eval8_teachers[eval8_teachers$Teacher != "NULL",]
+eval8_teachers <- eval8_teachers[str_detect(eval8_teachers$Teacher, "do ") == F,]
+eval8_teachers <- eval8_teachers[str_detect(eval8_teachers$Teacher, "have") == F,]
+eval8_teachers$Teacher <- str_remove_all(eval7_teachers$Teacher, " ?\\(.+")
+
+#Create teachers data frame
+teachers <- rbind(eval1_teachers, eval2_teachers, eval3_teachers, eval4_teachers, eval5_teachers, eval6_teachers, eval7_teachers, eval8_teachers)
+teachers$Teacher <- ifelse(teachers$Teacher == "Micheal Thomas", "Michael Thomas", teachers$Teacher)
+teachers$Teacher <- ifelse(teachers$Teacher == "Shelly Reece", "Shelley Reece", teachers$Teacher)
+teachers$Teacher <- ifelse(teachers$Teacher == "Bella Ankist", "Bella Anikst", teachers$Teacher)
+teachers$Teacher <- ifelse(teachers$Teacher == "Julie Normington" | teachers$Teacher == "Julie Normnton" |
+                           teachers$Teacher == "Judy Norminton", "Julie Norminton", teachers$Teacher)
+teachers$Teacher <- ifelse(teachers$Teacher == "Micheal Daniels", "Michael Daniels", teachers$Teacher)
+teachers$Teacher <- ifelse(teachers$Teacher == "Fawzia Mohammed", "Fawzia Mohamed", teachers$Teacher)
+teachers <- teachers[order(teachers$Teacher),]
+
+teachers$`What do you like about this teacher/class` <- ifelse(teachers$`What do you like about this teacher/class` == "NULL", NA, teachers$`What do you like about this teacher/class`)
+teachers$`What changes would make this class better` <- ifelse(teachers$`What changes would make this class better` == "NULL", NA, teachers$`What changes would make this class better`)
+
+teachers$Teacher %>% table %>% sort(decreasing = T)
+teacher_names <- unique(teachers$Teacher)
+teacher_names
+```
+
+##Generate word clouds from teachers data frame
+```{r warning =F, message=F}
+library("tm")
+library("NLP")
+library("wordcloud")
+library("RColorBrewer")
+michaelthomas <- teachers[teachers$Teacher == "Michael Thomas",2:3]
+michaelthomas1 <- michaelthomas[is.na(michaelthomas$`What do you like about this teacher/class`) == F,1] %>% unlist %>% as.vector
+michaelthomas2 <- michaelthomas[is.na(michaelthomas$`What changes would make this class better`) == F,2] %>% unlist %>% as.vector
+genekavenoki <- teachers[teachers$Teacher == "Gene Kavenoki",2:3]
+genekavenoki1 <- genekavenoki[is.na(genekavenoki$`What do you like about this teacher/class`) == F,1] %>% unlist %>% as.vector
+genekavenoki2 <- genekavenoki[is.na(genekavenoki$`What changes would make this class better`) == F,2] %>% unlist %>% as.vector
+
+text <- list(michaelthomas1, michaelthomas2, genekavenoki1, genekavenoki2)
+for(i in 1:4){
+  # Load the text as a corpus
+  docs <- Corpus(VectorSource(text[[i]]))
+  # Convert the text to lower case
+  docs <- tm_map(docs, content_transformer(tolower))
+  # Remove numbers
+  docs <- tm_map(docs, removeNumbers)
+  # Remove punctuations
+  docs <- tm_map(docs, removePunctuation)
+  # Eliminate extra white spaces
+  docs <- tm_map(docs, stripWhitespace)
+  #Remove stopwords
+  docs <- tm_map(docs, removeWords, stopwords('english'))
+  excludeWords <- c("teacher", "class", "michael", "michael","gene" ,"students", "nothing", "can", "always", "really", "lot", "classes", "like")
+  # Remove your own stopwords
+  if(!is.null(excludeWords)) 
+    docs <- tm_map(docs, removeWords, excludeWords)
+  # Create term-document matrix
+  tdm <- TermDocumentMatrix(docs)
+  m <- as.matrix(tdm)
+  v <- sort(rowSums(m),decreasing=TRUE)
+  d <- data.frame(word = names(v),freq=v)
+  
+  # Plot the word cloud
+  set.seed(1)
+  layout(matrix(c(1, 2), nrow=2), heights=c(2, 5))
+  par(mar=rep(0, 4))
+  plot.new()
+  if(i %% 2 == 1) {text(x=0.5, y=0.5, "What do you like about this teacher?")}
+  else  {text(x=0.5, y=0.5, "What changes would make this class better?")}
+  wordcloud(d$word,d$freq, min.freq=1, random.order = FALSE, random.color = FALSE, colors = rainbow(12))
+}
+```
+
+#ELECTIVE PREFERENCES
+##Data Cleaning: Advanced Elective Preferences
+```{r warning=F, messages=F}
+#Reading in the data for advanced elective preferences files 1-5
+adv1 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Advanced_16_export.csv")
+adv2 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Advanced_17_export.csv")
+adv3 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Advanced_17_New_export.csv")
+adv4 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Advanced_18_export.csv")
+adv5 <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Advanced_20_export.csv")
+Elective_Preferences_Advanced_29_export <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Advanced_29_export.csv")
+
+#Data Cleaning for only advanced elective preferences file 6
+for(i in 1:nrow(Elective_Preferences_Advanced_29_export)){
+  for(j in 8:14){
+    if(Elective_Preferences_Advanced_29_export[i, j] == "1st choice"){
+      Elective_Preferences_Advanced_29_export$firstchoicemw[i] <- colnames(Elective_Preferences_Advanced_29_export)[j]
+    }
+  }
+}
+
+
+for(k in 1:nrow(Elective_Preferences_Advanced_29_export)){
+  for(l in 8:14){
+    if(Elective_Preferences_Advanced_29_export[k, l] == "2nd choice"){
+      Elective_Preferences_Advanced_29_export$secondchoicemw[k] <- colnames(Elective_Preferences_Advanced_29_export)[l]
+    }
+  }
+}
+
+for(i in 1:nrow(Elective_Preferences_Advanced_29_export)){
+  for(j in 15:23){
+    if(Elective_Preferences_Advanced_29_export[i, j] == "1st choice"){
+      Elective_Preferences_Advanced_29_export$firstchoicetth[i] <- colnames(Elective_Preferences_Advanced_29_export)[j]
+    }
+  }
+}
+
+
+for(k in 1:nrow(Elective_Preferences_Advanced_29_export)){
+  for(l in 15:23){
+    if(Elective_Preferences_Advanced_29_export[k, l] == "2nd choice"){
+      Elective_Preferences_Advanced_29_export$secondchoicetth[k] <- colnames(Elective_Preferences_Advanced_29_export)[l]
+    }
+  }
+}
+
+for(a in 1:nrow(Elective_Preferences_Advanced_29_export)){
+  if(Elective_Preferences_Advanced_29_export$Do_you_plan_to_study_in_the_Academic_Program_next_session_[a] == "NO, I do not plan to study inthe Academic Programnext session."){
+  Elective_Preferences_Advanced_29_export$firstchoicemw[a] <- "NULL"
+  Elective_Preferences_Advanced_29_export$secondchoicemw[a] <- "NULL"
+  Elective_Preferences_Advanced_29_export$firstchoicetth[a] <- "NULL"
+  Elective_Preferences_Advanced_29_export$secondchoicetth[a] <- "NULL"
+  }
+}
+
+adv6 <- Elective_Preferences_Advanced_29_export
+
+#Keep appropriate columns that we want
+adv2 <- adv2[,-c(4:5)]
+adv3 <- adv3[,-c(4:5)]
+adv4 <- adv4[,-c(4:5)]
+adv5 <- adv5[,-c(4:7)]
+adv6 <- adv6[,-c(4:23)]
+colnames(adv6)[5:8] <- colnames(adv1)[4:7]
+adv6 <- cbind(adv6[,c(1:3,5:8)], adv6[,4])
+
+#Function to string split and find quarter
+get_quarter <- function(dataframe) {
+  quarter <- rep(NA, 2)
+  quarter[1] <- substring(str_extract_all(dataframe$Quarter, "_\\w{4,6}_\\d{4}"), 2) %>% str_replace(., "_", " ")
+  quarter[2] <- str_extract_all(dataframe$Quarter, "_\\w{3}_") %>% substring(.,2,4)
+  quarter
+}
+
+advanced <- list(adv1, adv2, adv3, adv4, adv5, adv6)
+
+for(i in 1:6) {
+  advanced[[i]]$QuarterYear <- get_quarter(advanced[[i]])[1]
+  advanced[[i]]$QuarterHalf <- get_quarter(advanced[[i]])[2]
+  advanced[[i]] <- advanced[[i]][,-which(colnames(advanced[[i]]) == "Quarter")]
+}
+
+adv1 <- advanced[[1]]
+adv2 <- advanced[[2]]
+adv3 <- advanced[[3]]
+adv4 <- advanced[[4]]
+adv5 <- advanced[[5]]
+adv6 <- advanced[[6]]
+
+#Clean adv6
+adv6[,4:7] <- apply(adv6[,4:7], 2, function(x) str_replace_all(x, "_", " "))
+adv6[,4:7] <- apply(adv6[,4:7], 2, function(x) str_remove_all(x, " MW"))
+adv6[,4:7] <- apply(adv6[,4:7], 2, function(x) str_remove_all(x, " TTH"))
+
+
+colnames(adv6)[4:7] <- c("1st_choice_elective_MW", "2nd_choice_elective_MW", "1st_choice_elective_TTH", "2nd_choice_elective_TTH")
+colnames(adv1)[c(5:7)] <- c("2nd_choice_elective_MW", "1st_choice_elective_TTH", "2nd_choice_elective_TTH")
+colnames(adv2)[c(5,7)] <- c("2nd_choice_elective_MW", "2nd_choice_elective_TTH")
+colnames(adv3)[c(6:7)] <- c("1st_choice_elective_TTH", "2nd_choice_elective_TTH")
+colnames(adv4)[c(5,7)] <- c("2nd_choice_elective_MW", "2nd_choice_elective_TTH")
+colnames(adv5)[c(5,7)] <- c("2nd_choice_elective_MW", "2nd_choice_elective_TTH")
+
+#Merge advanced files into advanced
+advanced <- rbind(adv1, adv2, adv3, adv4, adv5, adv6)
+head(advanced) #cleaned advanced students
+advanced
+
+#Remove NULL
+advanced <- advanced[advanced$`1st_choice_elective_TTH` != "NULL",]
+```
+
+
+##Exploratory Analysis: Advanced Elective Preferences 
+```{r}
+advanced$`1st_choice_elective_MW` %>% table %>% sort(decreasing=T)
+advanced$`1st_choice_elective_TTH` %>% table %>% sort(decreasing=T)
+advanced$`2nd_choice_elective_MW` %>% table %>% sort(decreasing=T)
+advanced$`2nd_choice_elective_TTH` %>% table %>% sort(decreasing=T)
+table(advanced$`1st_choice_elective_MW`) # English through Movies is highest
+table(advanced$`2nd_choice_elective_MW`) # Same goes for second choice where English through Movies is highest
+table(advanced$`1st_choice_elective_TTH`)
+# IELTS Prep, Academic Vocab pretty high
+table(advanced$`2nd_choice_elective_TTH`) # Slang and vocab dev high
+
+# combine 1st and 2nd together
+advancedfirst <- as.vector(c(advanced$`1st_choice_elective_MW`, advanced$`1st_choice_elective_TTH`))
+advancedfirst <- ifelse(advancedfirst == "College Workshop (Level 105+ ONLY)", "College Workshop", advancedfirst)
+advancedfirst <- ifelse(advancedfirst == "104 IELTS Preparation", "IELTS Preparation", advancedfirst)
+advancedfirst <- ifelse(advancedfirst == "104 TOEFL Preparation", "IELTS Preparation", advancedfirst)
+advancedfirst <- ifelse(advancedfirst == "Word Play (Academic Vocabulary Development)", "Word Play", advancedfirst)
+advancedfirst <- ifelse(advancedfirst == "Academic Vocabulary Development", "Word Play", advancedfirst)
+
+unique(advancedfirst)
+advancedfirst <- as.data.frame(sort(table(advancedfirst),decreasing=T))
+
+advancedsecond <- as.vector(c(advanced$`2nd_choice_elective_MW`, advanced$`2nd_choice_elective_TTH`))
+advancedsecond <- ifelse(advancedsecond == "College Workshop (Level 105+ ONLY)", "College Workshop", advancedsecond)
+advancedsecond <- ifelse(advancedsecond == "104 IELTS Preparation", "IELTS Preparation", advancedsecond)
+advancedsecond <- ifelse(advancedsecond == "104 TOEFL Preparation", "IELTS Preparation", advancedsecond)
+advancedsecond <- ifelse(advancedsecond == "Word Play (Academic Vocabulary Development)", "Word Play", advancedsecond)
+advancedsecond <- ifelse(advancedsecond == "Academic Vocabulary Development", "Word Play", advancedsecond)
+
+unique(advancedsecond)
+advancedsecond <- as.data.frame(sort(table(advancedsecond),decreasing=T))
+
+advancedfirst$Elective_Type <- rep(NA, nrow(advancedfirst))
+advancedsecond$Elective_Type <- rep(NA, nrow(advancedsecond))
+
+#Create Elective Categories
+advancedfirst[advancedfirst$advancedfirst == "IELTS Preparation" |
+              advancedfirst$advancedfirst == "TOEFL Preparation" |
+              advancedfirst$advancedfirst == "GRE Preparation", "Elective_Type"] <- "Test Prep"
+advancedfirst[advancedfirst$advancedfirst == "English Through Movies" |
+              advancedfirst$advancedfirst == "English Through Drama" |
+              advancedfirst$advancedfirst == "English Through Literature" |
+              advancedfirst$advancedfirst == "American Idioms and Slang" |
+              advancedfirst$advancedfirst == "Current Events", "Elective_Type"] <- "English Culture"
+advancedfirst[advancedfirst$advancedfirst == "Word Play" |
+              advancedfirst$advancedfirst == "Grammar In Use" |
+              advancedfirst$advancedfirst == "Business English" , "Elective_Type"] <- "English Vocab/Grammar"
+advancedfirst[advancedfirst$advancedfirst == "Public Speaking" |
+              advancedfirst$advancedfirst == "Active Listening and Speaking" |
+              advancedfirst$advancedfirst == "American Pronunciation", "Elective_Type"] <- "Speaking"
+advancedfirst[advancedfirst$advancedfirst == "College Workshop" |
+              advancedfirst$advancedfirst == "Community Service", "Elective_Type"] <- "Other"
+
+advancedsecond[advancedsecond$advancedsecond == "IELTS Preparation" |
+              advancedsecond$advancedsecond == "TOEFL Preparation" |
+              advancedsecond$advancedsecond == "GRE Preparation", "Elective_Type"] <- "Test Prep"
+advancedsecond[advancedsecond$advancedsecond == "English Through Movies" |
+              advancedsecond$advancedsecond == "English Through Drama" |
+              advancedsecond$advancedsecond == "English Through Literature" |
+              advancedsecond$advancedsecond == "American Idioms and Slang" |
+              advancedsecond$advancedsecond == "Current Events", "Elective_Type"] <- "English Culture"
+advancedsecond[advancedsecond$advancedsecond == "Word Play" |
+              advancedsecond$advancedsecond == "Grammar In Use" |
+              advancedsecond$advancedsecond == "Business English" , "Elective_Type"] <- "English Vocab/Grammar"
+advancedsecond[advancedsecond$advancedsecond == "Public Speaking" |
+              advancedsecond$advancedsecond == "Active Listening and Speaking" |
+              advancedsecond$advancedsecond == "American Pronunciation", "Elective_Type"] <- "Speaking"
+advancedsecond[advancedsecond$advancedsecond == "College Workshop" |
+              advancedsecond$advancedsecond == "Community Service", "Elective_Type"] <- "Other"
+
+colnames(advancedfirst)[1] <- "Elective_Name"
+colnames(advancedsecond)[1] <- "Elective_Name"
+
+
+# make bar graphs
+library(ggplot2)
+ggplot(advancedfirst, aes(x=Elective_Name, y=Freq, fill=Elective_Type)) + 
+  geom_col() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("First Choice Electives (Advanced)")
+ggplot(advancedsecond, aes(x=Elective_Name, y=Freq, fill=Elective_Type)) + 
+  geom_col() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("Second Choice Electives (Advanced)")
+
+
+#Combine first and second choice for advanced students
+advancedfirst$Elective_Name <- as.character(advancedfirst$Elective_Name)
+advancedsecond$Elective_Name <- as.character(advancedsecond$Elective_Name)
+
+
+advancedsecond <- advancedsecond[order(advancedsecond$Elective_Name),]
+advancedfirst <- advancedfirst[order(advancedfirst$Elective_Name),]
+advanced_all_freq <- advancedfirst$Freq + advancedsecond$Freq
+advanced_all <- data.frame(Elective_Name = advancedfirst$Elective_Name, 
+                           Freq = advanced_all_freq, 
+                           Elective_Type = advancedfirst$Elective_Type,
+                           stringsAsFactors=FALSE)
+advanced_all <- advanced_all[order(desc(advanced_all$Freq)),]
+rownames(advanced_all) <- 1:nrow(advanced_all)
+name_order <- advanced_all$Elective_Name
+
+#bar chart for both first and second choice electives of adv students
+ggplot(advanced_all, 
+       aes(x=factor(Elective_Name, levels=name_order), 
+           y=Freq, 
+           fill=factor(Elective_Type, 
+                       levels=c("English Culture", "English Vocab/Grammar", "Test Prep", "Speaking", "Other")))) + 
+  geom_col() + 
+  xlab("Elective Name") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_fill_discrete(name = "Elective_Type") +
+  ggtitle("Advanced Students - Elective Course Popularity")
+```
+
+
+##Data Cleaning: Intermediate Elective Preferences
+```{r warnings=F, messages = F}
+Elective_Preferences_Intermediate_14_export <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Intermediate_14_export.csv")
+Elective_Preferences_Intermediate_15_export <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Intermediate_15_export.csv")
+Elective_Preferences_Intermediate_16_export <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Intermediate_16_export.csv")
+Elective_Preferences_Intermediate_16_New_export <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Intermediate_16_New_export.csv")
+Elective_Preferences_Intermediate_17_export <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Intermediate_17_export.csv")
+Elective_Preferences_Intermediate_21_export <- read_csv("/Users/kathyfu/Documents/4th Year Academics/Stats141SL/ALCDataFiles_anonymized/Elective_Preferences_Intermediate_21_export.csv")
+
+#make last file into same format as the others
+fixed <- Elective_Preferences_Intermediate_21_export
+fixed$firstchoice <- rep(NA, nrow(fixed))
+fixed$secondchoice <- rep(NA, nrow(fixed))
+for(i in 1:nrow(fixed)){
+  if(fixed$ACCENT_REDUCTION_WORKSHOP[i]=="2nd choice")
+  {
+    fixed$secondchoice[i] <- "Accent Reduction"
+  }
+  if(fixed$DRAMA_WORKSHOP[i]=="1st choice"){
+    fixed$firstchoice[i] <- "Drama Workshop"
+  }
+  if(fixed$DRAMA_WORKSHOP[i]=="2nd choice"){
+    fixed$secondchoice[i] <- "Drama Workshop"
+  }
+  if(fixed$STREET_TALK[i]=="1st choice"){
+    fixed$firstchoice[i] <- "Street Talk"
+  }
+  if(fixed$STREET_TALK[i]=="2nd choice"){
+    fixed$secondchoice[i] <- "Street Talk"
+  }
+  if(fixed$iBT_TOEFL_Preparation[i]=="1st choice"){
+    fixed$firstchoice[i] <- "TOEFL Prep"
+  }
+  if(fixed$iBT_TOEFL_Preparation[i]=="2nd choice"){
+    fixed$secondchoice[i] <- "TOEFL Prep"
+  }
+  if(fixed$TALKSHOP[i]=="1st choice"){
+    fixed$firstchoice[i] <- "Talkshop"
+  }
+  if(fixed$TALKSHOP[i]=="2nd choice"){
+    fixed$secondchoice[i] <- "Talkshop"
+  }
+  if(fixed$WORD_PLAY[i]=="1st choice"){
+    fixed$firstchoice[i] <- "Word Play"
+  }
+  if(fixed$WORD_PLAY[i]=="2nd choice"){
+    fixed$secondchoice[i] <- "Word Play"
+  }
+  if(fixed$IELTS_Preparation[i]=="1st choice"){
+    fixed$firstchoice[i] <- "IELTS"
+  }
+  if(fixed$IELTS_Preparation[i]=="2nd choice"){
+    fixed$secondchoice[i] <- "IELTS"
+  }
+  if(fixed$COMMUNITY_SERVICE[i]=="1st choice"){
+    fixed$firstchoice[i] <- "Community Service"
+  }
+  if(fixed$COMMUNITY_SERVICE[i]=="2nd choice"){
+    fixed$secondchoice[i] <- "Community Service"
+  }
+}
+
+#keep rows that we want
+clean14 <- Elective_Preferences_Intermediate_14_export
+clean15 <- Elective_Preferences_Intermediate_15_export[,c(1:3, 5:7)]
+clean16int <- Elective_Preferences_Intermediate_16_export
+clean16new <- Elective_Preferences_Intermediate_16_New_export
+clean17int <- Elective_Preferences_Intermediate_17_export[,c(1:3, 5:9)]
+clean21 <- fixed[,c(1:3, 17:18, 16)]
+colnames(clean21)[4:5] <- c("1st_choice_elective", "2ndchoice_elective") 
+
+intermediateonechoice <- rbind(clean14, clean15, clean21)
+intermediatetwochoice <- rbind(clean16int, clean16new, clean17int)
+
+
+get_quarter <- function(dataframe) {
+  quarter <- rep(NA, 2)
+  quarter[1] <- substring(str_extract_all(dataframe$Quarter, "_\\w{4,6}_\\d{4}"), 2) %>% str_replace(., "_", " ")
+  quarter[2] <- str_extract_all(dataframe$Quarter, "_\\w{3}_") %>% substring(.,2,4)
+  quarter
+}
+
+intermediate <- list(intermediateonechoice, intermediatetwochoice)
+
+for(i in 1:2) {
+  intermediate[[i]]$QuarterYear <- get_quarter(intermediate[[i]])[1]
+  intermediate[[i]]$QuarterHalf <- get_quarter(intermediate[[i]])[2]
+  intermediate[[i]] <- intermediate[[i]][,-which(colnames(intermediate[[i]]) == "Quarter")]
+}
+
+intermediateonechoice <- intermediate[[1]]
+intermediatetwochoice <- intermediate[[2]]
+```
+
+
+##Exploratory Analysis: Intermediate Elective Preferences
+```{r}
+table(intermediateonechoice$X1st_choice_elective) # TOEFL and IELTS prep high
+table(intermediateonechoice$X2ndchoice_elective) # same as above, slang and word play also high
+
+table(intermediatetwochoice$X1st_choice_elective_MW) # Business English
+table(intermediatetwochoice$X2ndchoice_elective_MW) # Active Listening and Speaking
+table(intermediatetwochoice$X1st_choice_elective_TTH) # Pronounciation
+table(intermediatetwochoice$X2ndchoice_elective_TTH) # Slang
+
+# add the counts to intermediateonechoice
+intermediatefirstchoice <- as.vector(c(intermediateonechoice$`1st_choice_elective`, intermediatetwochoice$`1st_choice_elective_MW`, intermediatetwochoice$`1st_choice_elective_TTH`))
+intermediatefirstchoice <- ifelse(intermediatefirstchoice == "Word Play (Academic Vocabulary Development)" |
+                                    intermediatefirstchoice == "Word Play", "Word Play", intermediatefirstchoice)
+intermediatefirstchoice <- ifelse(intermediatefirstchoice == "IELTS", "IELTS Preparation", intermediatefirstchoice)
+intermediatefirstchoice <- ifelse(intermediatefirstchoice == "TOEFL Prep", "TOEFL Preparation", intermediatefirstchoice)
+intermediatefirst <- as.data.frame(table(intermediatefirstchoice))
+intermediatefirst <- intermediatefirst[intermediatefirst$intermediatefirstchoice != "NULL",]
+
+#second choice electives for intermediate students frequency
+intermediatesecondchoice <- as.vector(c(intermediateonechoice$`2ndchoice_elective`, intermediatetwochoice$`2ndchoice_elective_MW`, intermediatetwochoice$`2ndchoice_elective_TTH`))
+intermediatesecondchoice <- ifelse(intermediatesecondchoice == "Word Play (Academic Vocabulary Development)" |
+                                  intermediatesecondchoice == "Word Play", "Word Play", intermediatesecondchoice)
+intermediatesecondchoice <- ifelse(intermediatesecondchoice == "IELTS", "IELTS Preparation", intermediatesecondchoice)
+intermediatesecondchoice <- ifelse(intermediatesecondchoice == "TOEFL Prep", "TOEFL Preparation", intermediatesecondchoice)
+intermediatesecond <- as.data.frame(table(intermediatesecondchoice))
+intermediatesecond <- intermediatesecond[is.na(intermediatesecond$intermediatesecondchoice) == F,]
+intermediatesecond <- intermediatesecond[intermediatesecond$intermediatesecondchoice != "NULL",]
+removed_electives <- rbind(intermediatesecond[1,], intermediatesecond[6,], intermediatesecond[15,])  #remove accent reduction, drama workshop, 
+colnames(removed_electives)[1] <- "Elective_Name" #prep removed_electives so we can rbind later
+removed_electives$Elective_Name <- as.character(removed_electives$Elective_Name)
+intermediatesecond <- intermediatesecond[-1,]
+intermediatesecond <- intermediatesecond[-5,]
+intermediatesecond <- intermediatesecond[-13,]
+
+
+#combine first and second choice
+intermediate_all_freq <- intermediatefirst$Freq + intermediatesecond$Freq
+intermediate_all <- data.frame(Elective_Name = as.character(intermediatefirst$intermediatefirstchoice), 
+                           Freq = intermediate_all_freq,
+                           stringsAsFactors=FALSE)
+intermediate_all <- rbind(intermediate_all, removed_electives)
+intermediate_all <- intermediate_all[order(desc(intermediate_all$Freq)),]
+rownames(intermediate_all) <- 1:nrow(intermediate_all)
+name_order <- intermediate_all$Elective_Name
+
+#add new variable called Elective_Type
+intermediate_all[intermediate_all$Elective_Name == "IELTS Preparation" |
+              intermediate_all$Elective_Name == "TOEFL Preparation", "Elective_Type"] <- "Test Prep"
+intermediate_all[intermediate_all$Elective_Name == "English Through Movies" |
+              intermediate_all$Elective_Name == "English Through Drama" |
+              intermediate_all$Elective_Name == "English Through Literature" |
+              intermediate_all$Elective_Name == "American Idioms and Slang" |
+              intermediate_all$Elective_Name == "Current Events" |
+              intermediate_all$Elective_Name == "Drama Workshop"  , "Elective_Type"] <- "English Culture"
+intermediate_all[intermediate_all$Elective_Name == "Word Play" |
+              intermediate_all$Elective_Name == "Business English" , "Elective_Type"] <- "English Vocab/Grammar"
+intermediate_all[intermediate_all$Elective_Name == "Public Speaking" |
+              intermediate_all$Elective_Name == "Active Listening and Speaking" |
+              intermediate_all$Elective_Name == "American Pronunciation" |
+              intermediate_all$Elective_Name == "Accent Reduction" |
+              intermediate_all$Elective_Name == "Talkshop" |
+              intermediate_all$Elective_Name == "Street Talk", "Elective_Type"] <- "Speaking"
+intermediate_all[intermediate_all$Elective_Name == "College Workshop" |
+              intermediate_all$Elective_Name == "Community Service", "Elective_Type"] <- "Other"
+
+#Visualization of all intermediate student elective preferences
+ggplot(intermediate_all, 
+       aes(x=factor(Elective_Name, levels=name_order), 
+           y=Freq, 
+           fill=factor(Elective_Type, 
+                       levels=c("English Culture", "English Vocab/Grammar", "Test Prep", "Speaking", "Other")))) + 
+  geom_col() + 
+  xlab("Elective Name") +
+  theme(axis.text.x = element_text(angle = 90, hjust=1)) +
+  scale_fill_discrete(name = "Elective_Type") +
+  ggtitle("Intermediate Students - Elective Course Popularity")
+```
+
